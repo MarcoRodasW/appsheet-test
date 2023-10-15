@@ -1,0 +1,110 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+      - next
+  pull_request:
+    branches:
+      - main
+      - next
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    outputs:
+      pnpm_cache_dir: ${{ steps.cache-info.outputs.PNPM_CACHE_DIR }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set Up Node.js Environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install and Configure pnpm
+        uses: pnpm/action-setup@v2.4.0
+        with:
+          version: 8
+          run_install: false
+
+      - name: Determine pnpm Cache Directory
+        id: cache-info
+        run: echo "PNPM_CACHE_DIR=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm Store
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.cache-info.outputs.PNPM_CACHE_DIR }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Project Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Next.js Build
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+            ${{ runner.os }}-nextjs-
+
+      - name: Build Project
+        run: pnpm build
+
+  lint:
+    runs-on: ubuntu-latest
+
+    outputs:
+      pnpm_cache_dir: ${{ steps.cache-info.outputs.PNPM_CACHE_DIR }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set Up Node.js Environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install and Configure pnpm
+        uses: pnpm/action-setup@v2.4.0
+        with:
+          version: 8
+          run_install: false
+
+      - name: Determine pnpm Cache Directory
+        id: cache-info
+        run: echo "PNPM_CACHE_DIR=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm Store
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.cache-info.outputs.PNPM_CACHE_DIR }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Project Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Next.js Build
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+            ${{ runner.os }}-nextjs-
+
+      - name: Lint Source Code
+        run: pnpm lint

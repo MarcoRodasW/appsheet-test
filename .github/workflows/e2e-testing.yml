@@ -1,0 +1,47 @@
+name: Cypress E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - next
+  pull_request:
+    branches:
+      - main
+      - next
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+
+    container:
+      image: cypress/included:cypress-13.2.0-node-20.6.1-chrome-116.0.5845.187-1-ff-117.0-edge-116.0.1938.76-1
+      options: --user 1001
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install and Configure pnpm
+        uses: pnpm/action-setup@v2.4.0
+        with:
+          version: 8
+          run_install: false
+
+      - name: Cache Next.js Build
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+            ${{ runner.os }}-nextjs-          
+
+      - name: Run Cypress Tests
+        uses: cypress-io/github-action@v6
+        with:
+          start: pnpm start
+          build: pnpm build
+          wait-on: 'http://localhost:3000'
+          config-file: cypress.config.ts
+          browser: chrome
